@@ -91,17 +91,9 @@ function createLoggingProxy(rootValue, label = "root", options = { hugeTree: tru
           popNode();
         }
       },
-
-      set(target, prop, newVal) {
-        const node = makeNode('set', { prop: String(prop), newVal });
-        pushNode(node);
-        try {
-          const base = (typeof value === 'object' || typeof value === 'function') ? value : boxed(value);
-          return Reflect.set(base, prop, maybeUnwrap(newVal), base);
-        } finally { popNode(); }
-      },
-      
       //TODO: FIX THIS !!!
+      
+      set(target, prop, newVal) {                const node = makeNode('set',                      { prop: String(prop), newVal }    ); pushNode(node); try {const base =                             (typeof value === 'object' || typeof value === 'function') ? value : boxed(value); return Reflect.set(base, prop, maybeUnwrap(newVal), base                                ); } finally { popNode(); } },
       has(target, prop) {                        const node = makeNode('has',                      String(prop)                      ); pushNode(node); try { return Reflect.has                     ((typeof value === 'object' || typeof value === 'function') ? value : boxed(value), prop                                                                                    ); } finally { popNode(); } },
       deleteProperty(target, prop) {             const node = makeNode('deleteProperty',           String(prop)                      ); pushNode(node); try { return Reflect.deleteProperty          ((typeof value === 'object' || typeof value === 'function') ? value : boxed(value), prop                                                                                    ); } finally { popNode(); } },
       ownKeys(target) {                          const node = makeNode('ownKeys',                  null                              ); pushNode(node); try { return Reflect.ownKeys                 ((typeof value === 'object' || typeof value === 'function') ? value : boxed(value)                                                                                          ); } finally { popNode(); } },
