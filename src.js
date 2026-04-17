@@ -64,4 +64,4 @@ function wrap(value, path = 'root', parentNode = null) {
   return proxy;
 }
 
-const LOG = { label: '__root__', children: [] };
+const LOG = { label: 'PROXY_LOGGER', children: [] };
