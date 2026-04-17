@@ -1,36 +1,22 @@
 # Bloxd-ProxyLogger
 ```js
-const testObj = {
-  x: 10,
-  y: 20,
-  sum() {
-    return this.x + this.y;
-  },
-  nested: {
-    a: 1,
-    b: 2,
-  }
-};
+//create the object to proxy
+let root = {
+  x: 42,
+  greet(name) { return `hello ${name}`; },
+  nested: { a: 1 },
+}
 
-// Create the logging proxy
-const proxy = createLoggingProxy(testObj, "testObj");
+//wrap the object, and give it a name
+let obj = wrap(root, 'root');
 
-// Access some properties
-proxy.x;
-proxy.y;
+ //perform your operations
+obj.nested.a;
+obj.greet('world');
+obj.x = 99;
+'nested' in obj;
+delete obj.x;
 
-// Call a method
-proxy.sum();
-
-// Access nested object
-proxy.nested.a;
-proxy.nested.b;
-
-// Print the call tree
-
-const callTree = getCallTree(proxy); // from your small testObj proxy
-
-console.log(JSON.stringify(callTree, null, 2));
-console.log("\n------\n")
-console.log(jsonToTree(callTree))
+//log the output
+console.log(LOG);
 ```
