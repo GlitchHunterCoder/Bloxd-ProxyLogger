@@ -50,15 +50,3 @@ let makeWrap=(target,intFn)=>{
         wrap
     }
 }
-
-let T = [1, 2, 3, 4];
-
-let Logger = makeWrap(T, (event, step, node) => {});
-
-try {Reflect.apply(
-    Array.prototype.splice,
-    Logger.proxy,
-    [1, 2, 99]
-)} catch {}
-
-console.log(Logger.log)
