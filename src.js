@@ -1,79 +1,64 @@
-const UNWRAP   = Symbol('unwrap');
-const IS_PROXY = Symbol('isProxy');
+let makeWrap=(target,intFn)=>{
+    let active = true
+    let ROOT = {children: []};
+    let step = 0
+    
+    let log=(node, op, args)=>{
+        let list = args.filter(e=>!e || !["object","function"].includes(typeof e)).map(e=>String(e))
+        op = `${op}(${list})`
+        let child = {op, args, step, children: []};
+        node.children.push(child);
+        return child;
+    }
+    
+    let wrap=(input, node=ROOT)=>{
+        let handler = Object.fromEntries(
+            Reflect.ownKeys(Reflect).map(op=>[op,(...args)=>{
+                try{
+                    let output = Reflect[op](...args)
+                    let child = log(node, op, args);
+                    let event = {input, op, args, output};
+                    let int = intFn?.(event,step,node)
+                    
+                    if (op == "get") {let desc = Reflect.getOwnPropertyDescriptor(...args);if (desc && !desc.configurable && !desc.writable) {return desc.value}}
+                    if (op == "getPrototypeOf" && !Reflect.isExtensible(...args)) {return Reflect.getPrototypeOf(...args)}
+                    if (op == "isExtensible") {return Reflect.isExtensible(...args)}
+                    
+                    return wrap(int ?? event.output, child);
+                }finally{
+                    step++
+                    active = true
+                }
+            }])
+        )
+        
+        let PROXY_HANDLE = new Proxy({},{
+            get(_,key){
+                try{return active?handler[key]:void 0}finally{active = false}
+            }
+        })
 
-const unwrap = v => v?.[UNWRAP] ?? v;
+        try{return new Proxy(input,PROXY_HANDLE)}catch{return input}
+    }
+    let ALL = wrap(target)
 
-const safe = v => {
-    if (v === null) return null;
-    if (typeof v === 'undefined') return undefined;
-    if (v === globalThis) return '[globalThis]';
-    if (typeof v === 'function') return `[Function: ${v.name || 'anonymous'}]`;
-    if (typeof v !== 'object') return v;
-    return `[object ${v?.constructor?.name ?? 'Object'}]`;
-};
-
-const TRAPS = [
-  'get', 'set', 'has', 'deleteProperty', 'apply', 'construct',
-  'ownKeys', 'getOwnPropertyDescriptor', 'defineProperty',
-  'getPrototypeOf', 'setPrototypeOf', 'isExtensible', 'preventExtensions',
-];
-
-const LOG = { label: 'PROXY_LOGGER', children: [] };
-
-const seen = new WeakMap();
-
-function wrap(value, path = 'root', parentNode = null) {
-  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return value;
-  if (seen.has(value)) return seen.get(value);
-
-  const node = { label: path, type: typeof value, children: [] };
-  if (parentNode) parentNode.children.push(node);
-  else LOG.children.push(node);
-
-  const log = (op, args) => {
-    const entry = { op, args, children: [] };
-    node.children.push(entry);
-    return entry;
-  };
-
-  const handler = Object.fromEntries(TRAPS.map(trap => [trap, (...args) => {
-      log(trap, args.slice(1).map(safe));
-      return Reflect[trap](...args);
-  }]));
-
-  handler.get = (target, prop, receiver) => {
-      if (prop === UNWRAP)   return value;
-      if (prop === IS_PROXY) return true;
-      const entry = log('get', [prop]);
-      const result = Reflect.get(target, prop, receiver);
-      const desc = Object.getOwnPropertyDescriptor(target, prop);
-      if (desc && !desc.configurable) return result;
-      return wrap(result, `${path}.${String(prop)}`, entry);
-  };
-
-  handler.set = (target, prop, newVal) => {
-      const unwrappedVal = unwrap(newVal);
-      log('set', [prop, safe(unwrappedVal)]);
-      return Reflect.set(target, prop, unwrappedVal);
-  };
-
-  handler.apply = (target, thisArg, args) => {
-      const unwrappedArgs = args.map(unwrap);
-      const unwrappedThis = unwrap(thisArg);
-      const entry = log('apply', [safe(unwrappedThis), unwrappedArgs.map(safe)]);
-      const result = Reflect.apply(target, unwrappedThis, unwrappedArgs);
-      return wrap(result, `${path}()`, entry);
-  };
-
-  handler.construct = (target, args, newTarget) => {
-      const unwrappedArgs = args.map(unwrap);
-      const unwrappedTarget = unwrap(newTarget);
-      const entry = log('construct', [unwrappedArgs.map(safe), safe(unwrappedTarget)]);
-      const result = Reflect.construct(target, unwrappedArgs, unwrappedTarget);
-      return wrap(result, `new ${path}`, entry);
-  };
-
-  const proxy = new Proxy(value, handler);
-  seen.set(value, proxy);
-  return proxy;
+    return {
+        target,
+        get step(){return step},
+        log:ROOT,
+        proxy:ALL,
+        wrap
+    }
 }
+
+let T = [1, 2, 3, 4];
+
+let Logger = makeWrap(T, (event, step, node) => {});
+
+try {Reflect.apply(
+    Array.prototype.splice,
+    Logger.proxy,
+    [1, 2, 99]
+)} catch {}
+
+console.log(Logger.log)
