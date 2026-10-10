@@ -11,11 +11,13 @@ let Logger = makeWrap(T, (event, step, node) => {
 });
 
 //apply your operations
-try {Reflect.apply(
-    Array.prototype.splice,
-    Logger.proxy,
-    [1, 2, 99]
-)} catch {}
+try {
+    Reflect.apply(
+        Array.prototype.splice,
+        Logger.proxy,
+        [1, 2, 99]
+    )
+} catch {}
 
 // log your result
 console.log(Logger.log)
