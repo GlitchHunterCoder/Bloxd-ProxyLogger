@@ -1,5 +1,9 @@
 let makeWrap=(target,intFn)=>{
-    let active = true
+    let state = {
+        false:false,
+        true:true
+    }
+    let active = state.true
     let ROOT = {children: []};
     let step = 0
     
@@ -27,14 +31,14 @@ let makeWrap=(target,intFn)=>{
                     return wrap(int ?? event.output, child);
                 }finally{
                     step++
-                    active = true
+                    active = state.true
                 }
             }])
         )
         
         let PROXY_HANDLE = new Proxy({},{
             get(_,key){
-                try{return active?handler[key]:void 0}finally{active = false}
+                try{return active?handler[key]:void 0}finally{active = state.false}
             }
         })
 
@@ -47,6 +51,10 @@ let makeWrap=(target,intFn)=>{
         get step(){return step},
         log:ROOT,
         proxy:ALL,
-        wrap
+        wrap,
+        state(n){
+            state.false = !!(n&1)
+            state.true = !!(n&2)
+        }
     }
 }
