@@ -6,7 +6,7 @@
 ```js
 let T = [1, 2, 3, 4]; //your target
 
-let Logger = makeWrap(T, (event, step, node) => {
+let {proxy, log} = makeWrap(T, (event, step, node) => {
     // Intercept callback
 });
 
@@ -14,13 +14,13 @@ let Logger = makeWrap(T, (event, step, node) => {
 try {
     Reflect.apply(
         Array.prototype.splice,
-        Logger.proxy,
+        proxy,
         [1, 2, 99]
     )
 } catch {}
 
 // log your result
-console.log(Logger.log)
+console.log(log)
 ```
 ## Docs
 ```js
